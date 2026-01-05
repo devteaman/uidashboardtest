@@ -16,10 +16,11 @@ import {
   MoreVertical,
   ArrowUpRight,
   Bell,
-  Menu,
   Clock,
+  ChevronDown,
 } from "lucide-react";
-import { STARTUPS, Startup } from "./data";
+import type { Startup } from "./data";
+import { supabase } from "./supabase";
 
 // --- Types ---
 type View = "dashboard" | "calendar" | "watchlist" | "profile";
@@ -40,31 +41,51 @@ const Sidebar = ({
   ];
 
   return (
-    <aside className="w-64 border-r border-white/5 bg-[#0a0a0c] flex flex-col h-screen fixed left-0 top-0">
-      <div className="p-8">
-        <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">
-          ANGELS DEN
-        </h1>
+    <aside className="w-64 bg-[#050507] flex flex-col h-screen fixed left-0 top-0 pl-4 border-r border-white/5 z-20">
+      <div className="p-8 pb-8">
+        <div className="flex items-center gap-2 text-white mb-1">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center font-bold text-lg">
+            A
+          </div>
+          <span className="text-xl font-bold tracking-tight">Angels Den</span>
+        </div>
       </div>
       <nav className="flex-1 px-4 space-y-2">
         {items.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => onViewChange(item.id)}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
-              activeView === item.id
-                ? "bg-purple-500/10 text-purple-400 border border-purple-500/20 shadow-[0_0_15px_rgba(168,85,247,0.1)]"
+          <div key={item.id} className="relative">
+            {activeView === item.id && (
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full" />
+            )}
+            <button
+              onClick={() => onViewChange(item.id)}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm font-medium ml-2 ${activeView === item.id
+                ? "text-blue-400 bg-blue-500/5"
                 : "text-zinc-500 hover:text-zinc-300 hover:bg-white/5"
-            }`}
-          >
-            <item.icon size={20} />
-            <span className="font-medium">{item.label}</span>
-          </button>
+                }`}
+            >
+              <item.icon size={18} />
+              <span>{item.label}</span>
+            </button>
+          </div>
         ))}
       </nav>
-      <div className="p-4 border-t border-white/5">
-        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-500" />
+
+      {/* Fading Squares Graphic */}
+      <div className="absolute bottom-0 left-0 p-6 opacity-30 pointer-events-none overflow-hidden w-full h-32">
+        <div className="flex flex-wrap gap-2 w-32 rotate-12 origin-bottom-left transform translate-y-4 -translate-x-4">
+          {[...Array(12)].map((_, i) => (
+            <div key={i} className={`w-6 h-6 bg-blue-500/40 rounded-sm ${i % 2 === 0 ? 'opacity-40' : 'opacity-80'}`}></div>
+          ))}
+        </div>
+      </div>
+
+      <div className="p-4 mt-auto">
+        <div className="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-white/5 transition-colors cursor-pointer border border-transparent hover:border-white/5">
+          <img
+            src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=facearea&facepad=2&w=100&h=100&q=80"
+            alt="Profile"
+            className="w-8 h-8 rounded-full border border-white/10"
+          />
           <div className="flex-1 overflow-hidden">
             <p className="text-sm font-medium text-white truncate">
               Alex Thompson
@@ -80,27 +101,82 @@ const Sidebar = ({
 const StatCard = ({
   label,
   value,
-  icon: Icon,
   trend,
 }: {
   label: string;
   value: string;
-  icon: any;
   trend: string;
 }) => (
-  <div className="p-6 rounded-2xl bg-[#0a0a0c] border border-white/5 hover:border-purple-500/30 transition-all duration-300 group">
-    <div className="flex items-start justify-between mb-4">
-      <div className="p-3 rounded-xl bg-purple-500/5 text-purple-400 group-hover:bg-purple-500/10 group-hover:scale-110 transition-all duration-300">
-        <Icon size={24} />
+  <div className="relative overflow-hidden rounded-2xl bg-[#0a0a0c] border border-white/5 p-6 group">
+    {/* Gradient Overlay */}
+    <div className="absolute inset-0 bg-gradient-to-br from-blue-900/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+    <div className="relative z-10">
+      <div className="flex justify-between items-start mb-4">
+        <div>
+          <h3 className="text-zinc-500 text-xs font-medium uppercase tracking-wider mb-1">{label}</h3>
+          <p className="text-2xl font-bold text-white tracking-tight">{value}</p>
+        </div>
+        <span className={`text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1 ${trend.includes('+') ? 'text-emerald-400 bg-emerald-400/10' : 'text-rose-400 bg-rose-400/10'}`}>
+          <TrendingUp size={10} /> {trend}
+        </span>
       </div>
-      <span className="text-xs font-medium text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded-full flex items-center gap-1">
-        <TrendingUp size={12} /> {trend}
-      </span>
+
+      {/* Decorative Graph Line */}
+      <div className="h-10 w-full opacity-50">
+        <svg viewBox="0 0 100 20" className="w-full h-full overflow-visible preserve-3d">
+          <defs>
+            <linearGradient id="gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.5" />
+              <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <path d="M0 15 Q 10 10, 20 12 T 40 8 T 60 14 T 80 5 L 100 10" fill="none" stroke="#3b82f6" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+          <path d="M0 15 Q 10 10, 20 12 T 40 8 T 60 14 T 80 5 L 100 10 V 20 H 0 Z" fill="url(#gradient)" stroke="none" />
+        </svg>
+      </div>
     </div>
-    <h3 className="text-zinc-500 text-sm font-medium">{label}</h3>
-    <p className="text-2xl font-bold text-white mt-1">{value}</p>
   </div>
 );
+
+const RegisterInterestModal = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  startupName,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  startupName: string;
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-[#0a0a0c] border border-white/10 rounded-2xl w-full max-w-md p-6 shadow-2xl scale-100 animate-in zoom-in-95 duration-200">
+        <h3 className="text-xl font-bold text-white mb-2">Register Interest</h3>
+        <p className="text-zinc-400 mb-6">
+          Are you sure you want to register interest in <span className="text-white font-semibold">{startupName}</span>? This will notify the deal team and they will contact you shortly.
+        </p>
+        <div className="flex gap-3 justify-end">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-colors font-medium"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl font-bold text-white shadow-lg shadow-blue-500/20 hover:scale-[1.02] active:scale-95 transition-all"
+          >
+            Confirm Registration
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // Fix: Explicitly type StartupCard as React.FC to include standard React attributes like 'key' in the props definition
 const StartupCard: React.FC<{
@@ -113,76 +189,80 @@ const StartupCard: React.FC<{
   return (
     <div
       onClick={onClick}
-      className="relative group bg-[#0a0a0c] border border-white/5 rounded-2xl p-5 hover:border-purple-500/50 hover:shadow-[0_0_30px_rgba(168,85,247,0.15)] transition-all duration-500 cursor-pointer overflow-hidden"
+      className="group bg-[#0a0a0c] border border-white/5 rounded-xl p-6 hover:border-zinc-700 transition-colors cursor-pointer"
     >
-      {/* Hover Background Accent */}
-      <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/5 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
       <div className="flex justify-between items-start mb-4">
         <img
           src={startup.logo}
           alt={startup.name}
-          className="w-12 h-12 rounded-xl border border-white/10"
+          className="w-12 h-12 rounded-xl bg-zinc-900 object-cover"
         />
         <button
           onClick={onBookmark}
-          className={`p-2 rounded-full transition-colors ${
-            startup.isBookmarked
-              ? "text-purple-400"
-              : "text-zinc-600 hover:text-white"
-          }`}
+          className={`p-2 rounded-lg transition-all duration-300 active:scale-90 hover:scale-110 ${startup.isBookmarked
+            ? "text-blue-400 bg-blue-500/10"
+            : "text-zinc-600 hover:text-zinc-300 hover:bg-white/5"
+            }`}
         >
           <Bookmark
-            size={20}
+            size={18}
             fill={startup.isBookmarked ? "currentColor" : "none"}
+            className="transition-all duration-300"
           />
         </button>
       </div>
 
-      <div className="mb-4">
-        <h3 className="text-lg font-bold text-white group-hover:text-purple-400 transition-colors">
+      <div className="mb-6 space-y-1">
+        <h3 className="text-lg font-bold text-white group-hover:text-blue-400 transition-colors">
           {startup.name}
         </h3>
-        <p className="text-sm text-zinc-400 line-clamp-1">{startup.tagline}</p>
+        <p className="text-sm text-zinc-500 line-clamp-2 h-10">
+          {startup.tagline}
+        </p>
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-6">
-        <span className="text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20">
+      <div className="flex flex-wrap gap-2 mb-6 h-7 overflow-hidden">
+        <span className="text-[10px] uppercase tracking-wider font-bold px-2.5 py-1 rounded bg-zinc-800 text-zinc-400 border border-zinc-700/50 whitespace-nowrap">
           {startup.sector}
         </span>
-        <span className="text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded bg-zinc-500/10 text-zinc-400 border border-white/5">
+        <span className="text-[10px] uppercase tracking-wider font-bold px-2.5 py-1 rounded bg-zinc-800 text-zinc-400 border border-zinc-700/50 whitespace-nowrap">
           {startup.stage}
         </span>
         {startup.validation.slice(0, 1).map((v) => (
-          <span
-            key={v}
-            className="text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center gap-1"
-          >
-            <CheckCircle2 size={10} /> {v}
+          <span key={v} className="text-[10px] uppercase tracking-wider font-bold px-2.5 py-1 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center gap-1.5 whitespace-nowrap">
+            <CheckCircle2 size={10} fill="currentColor" /> {v}
           </span>
         ))}
       </div>
 
-      <div className="space-y-3">
+      <div className="mb-4">
+        <p className="text-sm font-medium text-zinc-400">
+          Valuation: <span className="text-white font-semibold">${(startup.valuation / 1000000).toFixed(1)}M</span>
+        </p>
+      </div>
+
+      <div className="space-y-3 pt-4 border-t border-white/5">
         <div className="flex justify-between items-end">
           <div>
-            <p className="text-[10px] uppercase text-zinc-500 font-bold tracking-widest">
+            <p className="text-[10px] uppercase text-zinc-500 font-bold tracking-widest mb-1">
               Raised
             </p>
-            <p className="text-lg font-bold text-white">
-              ${(startup.raised / 1000000).toFixed(1)}M{" "}
-              <span className="text-zinc-500 text-sm">
+            <div className="flex items-baseline gap-1">
+              <span className="text-base font-semibold text-white">
+                ${(startup.raised / 1000000).toFixed(1)}M
+              </span>
+              <span className="text-zinc-600 text-xs">
                 / ${(startup.target / 1000000).toFixed(1)}M
               </span>
-            </p>
+            </div>
           </div>
-          <p className="text-sm font-medium text-purple-400">
+          <span className="text-sm font-medium text-white">
             {percentRaised}%
-          </p>
+          </span>
         </div>
-        <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+        <div className="w-full h-1 bg-zinc-800 rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-purple-500 to-indigo-500 transition-all duration-1000"
+            className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-1000"
             style={{ width: `${percentRaised}%` }}
           />
         </div>
@@ -195,10 +275,12 @@ const StartupDetailView = ({
   startup,
   onBack,
   onToggleBookmark,
+  onRegisterInterest,
 }: {
   startup: Startup;
   onBack: () => void;
   onToggleBookmark: () => void;
+  onRegisterInterest: () => void;
 }) => {
   const [showPitchModal, setShowPitchModal] = useState(false);
 
@@ -223,30 +305,21 @@ const StartupDetailView = ({
         <div className="ml-auto flex gap-3">
           <button
             onClick={onToggleBookmark}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all ${
-              startup.isBookmarked
-                ? "bg-purple-500/10 border-purple-500/20 text-purple-400"
-                : "border-white/5 text-zinc-400 hover:text-white hover:bg-white/5"
-            }`}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all duration-300 active:scale-95 ${startup.isBookmarked
+              ? "bg-blue-500/10 border-blue-500/20 text-blue-400"
+              : "border-white/5 text-zinc-400 hover:text-white hover:bg-white/5"
+              }`}
           >
             <Bookmark
               size={18}
               fill={startup.isBookmarked ? "currentColor" : "none"}
+              className={startup.isBookmarked ? "scale-110" : ""}
             />
             {startup.isBookmarked ? "Watched" : "Watchlist"}
           </button>
           <button
-            onClick={() => {
-              const toast = document.getElementById("toast-notification");
-              if (toast) {
-                toast.classList.remove("translate-y-20", "opacity-0");
-                setTimeout(
-                  () => toast.classList.add("translate-y-20", "opacity-0"),
-                  3000
-                );
-              }
-            }}
-            className="px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl font-bold text-white shadow-lg shadow-purple-500/20 hover:scale-[1.02] active:scale-95 transition-all"
+            onClick={onRegisterInterest}
+            className="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl font-bold text-white shadow-lg shadow-blue-500/20 hover:scale-[1.02] active:scale-95 transition-all"
           >
             Register Interest
           </button>
@@ -312,12 +385,12 @@ const StartupDetailView = ({
               <h4 className="text-xl font-bold text-white mb-6">Pitch Deck</h4>
               <button
                 onClick={() => setShowPitchModal(true)}
-                className="w-full h-32 rounded-2xl border border-dashed border-white/10 hover:border-purple-500/50 hover:bg-purple-500/5 transition-all group flex flex-col items-center justify-center gap-3"
+                className="w-full h-32 rounded-2xl border border-dashed border-white/10 hover:border-blue-500/50 hover:bg-blue-500/5 transition-all group flex flex-col items-center justify-center gap-3"
               >
                 <div className="p-3 rounded-full bg-white/5 group-hover:scale-110 transition-transform">
-                  <ArrowUpRight className="text-zinc-500 group-hover:text-purple-400" />
+                  <ArrowUpRight className="text-zinc-500 group-hover:text-blue-400" />
                 </div>
-                <span className="text-zinc-400 group-hover:text-purple-400 font-medium">
+                <span className="text-zinc-400 group-hover:text-blue-400 font-medium">
                   View Full Pitch Deck
                 </span>
               </button>
@@ -331,13 +404,13 @@ const StartupDetailView = ({
             <div className="space-y-2">
               <div className="flex justify-between text-sm mb-2">
                 <span className="text-zinc-500">Progress</span>
-                <span className="text-purple-400 font-bold">
+                <span className="text-blue-400 font-bold">
                   {Math.round((startup.raised / startup.target) * 100)}%
                 </span>
               </div>
               <div className="h-2 bg-white/5 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-purple-500"
+                  className="h-full bg-blue-500"
                   style={{
                     width: `${(startup.raised / startup.target) * 100}%`,
                   }}
@@ -415,15 +488,15 @@ const StartupDetailView = ({
                 </p>
                 <div className="flex gap-4 justify-center">
                   <div
-                    className="w-4 h-4 rounded-full bg-purple-500 animate-bounce"
+                    className="w-4 h-4 rounded-full bg-blue-500 animate-bounce"
                     style={{ animationDelay: "0ms" }}
                   />
                   <div
-                    className="w-4 h-4 rounded-full bg-purple-500 animate-bounce"
+                    className="w-4 h-4 rounded-full bg-blue-500 animate-bounce"
                     style={{ animationDelay: "150ms" }}
                   />
                   <div
-                    className="w-4 h-4 rounded-full bg-purple-500 animate-bounce"
+                    className="w-4 h-4 rounded-full bg-blue-500 animate-bounce"
                     style={{ animationDelay: "300ms" }}
                   />
                 </div>
@@ -489,18 +562,17 @@ const CalendarView = () => {
               className="bg-[#0a0a0c] min-h-[100px] p-4 group relative hover:bg-white/5 transition-colors"
             >
               <span
-                className={`text-sm font-medium ${
-                  day === 12 || day === 15 || day === 20
-                    ? "text-purple-400"
-                    : "text-zinc-600"
-                }`}
+                className={`text-sm font-medium ${day === 12 || day === 15 || day === 20
+                  ? "text-blue-400"
+                  : "text-zinc-600"
+                  }`}
               >
                 {day}
               </span>
               {(day === 12 || day === 15 || day === 20) && (
                 <div className="mt-2 flex flex-col gap-1">
-                  <div className="w-full h-1 bg-purple-500/40 rounded-full" />
-                  <span className="text-[10px] text-purple-300 font-bold truncate">
+                  <div className="w-full h-1 bg-blue-500/40 rounded-full" />
+                  <span className="text-[10px] text-blue-300 font-bold truncate">
                     Pitch Day
                   </span>
                 </div>
@@ -514,14 +586,14 @@ const CalendarView = () => {
         {events.map((event, idx) => (
           <div
             key={idx}
-            className="bg-[#0a0a0c] border border-white/5 rounded-2xl p-6 hover:border-purple-500/30 transition-all cursor-pointer group"
+            className="bg-[#0a0a0c] border border-white/5 rounded-2xl p-6 hover:border-blue-500/30 transition-all cursor-pointer group"
           >
             <div className="flex items-center gap-4 mb-3">
-              <div className="p-3 bg-purple-500/10 text-purple-400 rounded-xl">
+              <div className="p-3 bg-blue-500/10 text-blue-400 rounded-xl">
                 <CalendarIcon size={20} />
               </div>
               <div>
-                <p className="text-sm font-bold text-white group-hover:text-purple-400 transition-colors">
+                <p className="text-sm font-bold text-white group-hover:text-blue-400 transition-colors">
                   {event.title}
                 </p>
                 <p className="text-xs text-zinc-500">
@@ -546,13 +618,67 @@ export default function App() {
   const [selectedStartup, setSelectedStartup] = useState<Startup | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [sectorFilter, setSectorFilter] = useState("All");
-  const [startups, setStartups] = useState(STARTUPS);
+  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+  const [startups, setStartups] = useState<Startup[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sortBy, setSortBy] = useState<"recently_added" | "most_raised" | "highest_valuation">("recently_added");
+  const [showSortMenu, setShowSortMenu] = useState(false);
+
+  // Modal State
+  const [registerModalOpen, setRegisterModalOpen] = useState(false);
+  const [startupToRegister, setStartupToRegister] = useState<Startup | null>(null);
 
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 1200);
-    return () => clearTimeout(timer);
-  }, [view]);
+    fetchStartups();
+
+    // Listen for modal trigger
+    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+    const handleOpenModal = (e: any) => {
+      setStartupToRegister(e.detail);
+      setRegisterModalOpen(true);
+    };
+    window.addEventListener('openRegisterModal', handleOpenModal);
+    return () => window.removeEventListener('openRegisterModal', handleOpenModal);
+  }, []);
+
+  const handleRegisterConfirm = () => {
+    setRegisterModalOpen(false);
+    const toast = document.getElementById("toast-notification");
+    if (toast) {
+      toast.classList.remove("translate-y-20", "opacity-0");
+      setTimeout(
+        () => toast.classList.add("translate-y-20", "opacity-0"),
+        3000
+      );
+    }
+    setStartupToRegister(null);
+  };
+
+  const fetchStartups = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('startups')
+        .select('*')
+        .order('id');
+
+      if (error) throw error;
+
+      if (data) {
+        /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+        const mappedData: Startup[] = data.map((item: any) => ({
+          ...item,
+          isBookmarked: item.is_bookmarked,
+          pitchDeckUrl: item.pitch_deck_url
+        }));
+        setStartups(mappedData);
+      }
+    } catch (error) {
+      console.error('Error fetching startups:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const sectors = [
     "All",
@@ -579,16 +705,58 @@ export default function App() {
           s.tagline.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
-    return result;
-  }, [startups, sectorFilter, searchQuery, view]);
 
-  const handleToggleBookmark = (id: string, e?: React.MouseEvent) => {
+    return result.sort((a, b) => {
+      if (sortBy === 'most_raised') {
+        return b.raised - a.raised;
+      }
+      if (sortBy === 'highest_valuation') {
+        return b.valuation - a.valuation;
+      }
+      // recently_added - assume ID order is close enough or use a real date if available (we don't have one, so stable sort)
+      return 0;
+    });
+  }, [startups, sectorFilter, searchQuery, view, sortBy]);
+
+  const handleToggleBookmark = async (id: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
+
+    // Find the startup to toggle
+    const startup = startups.find(s => s.id === id);
+    if (!startup) return;
+
+    const newIsBookmarked = !startup.isBookmarked;
+
+    // Optimistic update
     setStartups((prev) =>
       prev.map((s) =>
-        s.id === id ? { ...s, isBookmarked: !s.isBookmarked } : s
+        s.id === id ? { ...s, isBookmarked: newIsBookmarked } : s
       )
     );
+
+    // ALSO update selectedStartup if it matches, ensuring Detail View updates immediately
+    if (selectedStartup && selectedStartup.id === id) {
+      setSelectedStartup(prev => prev ? ({ ...prev, isBookmarked: newIsBookmarked }) : null);
+    }
+
+    try {
+      const { error } = await supabase
+        .from('startups')
+        .update({ is_bookmarked: newIsBookmarked })
+        .eq('id', id);
+
+      if (error) {
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error updating bookmark:', error);
+      // Revert optimistic update
+      setStartups((prev) =>
+        prev.map((s) =>
+          s.id === id ? { ...s, isBookmarked: !newIsBookmarked } : s
+        )
+      );
+    }
   };
 
   const handleStartupClick = (startup: Startup) => {
@@ -602,25 +770,21 @@ export default function App() {
         <StatCard
           label="Total Deal Flow"
           value="248"
-          icon={LayoutDashboard}
           trend="+12%"
         />
         <StatCard
           label="Avg. Valuation"
           value="$14.2M"
-          icon={DollarSign}
           trend="+5.4%"
         />
         <StatCard
           label="Active Founders"
           value="842"
-          icon={Users}
           trend="+22%"
         />
         <StatCard
           label="Pipeline Value"
           value="$420M"
-          icon={TrendingUp}
           trend="+18%"
         />
       </div>
@@ -628,13 +792,13 @@ export default function App() {
       <div className="flex flex-col md:flex-row gap-4 mb-8">
         <div className="relative flex-1 group">
           <Search
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-purple-400 transition-colors"
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-blue-400 transition-colors"
             size={20}
           />
           <input
             type="text"
             placeholder="Search startups, keywords..."
-            className="w-full bg-[#0a0a0c] border border-white/5 rounded-xl py-3 pl-12 pr-4 text-white focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50 transition-all"
+            className="w-full bg-[#0a0a0c] border border-white/5 rounded-xl py-3 pl-12 pr-4 text-white focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all placeholder:text-zinc-600"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -644,18 +808,47 @@ export default function App() {
             <button
               key={s}
               onClick={() => setSectorFilter(s)}
-              className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
-                sectorFilter === s
-                  ? "bg-purple-500/10 border-purple-500/20 text-purple-400"
-                  : "bg-[#0a0a0c] border-white/5 text-zinc-500 hover:text-white"
-              }`}
+              className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${sectorFilter === s
+                ? "bg-blue-500 text-white border-blue-600 shadow-lg shadow-blue-500/20"
+                : "bg-[#0a0a0c] border-white/5 text-zinc-500 hover:text-white"
+                }`}
             >
               {s}
             </button>
           ))}
-          <button className="flex items-center gap-2 px-4 py-2 bg-[#0a0a0c] border border-white/5 rounded-xl text-zinc-500 hover:text-white transition-all">
-            <Filter size={18} /> Filters
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => setShowSortMenu(!showSortMenu)}
+              className={`flex items-center gap-2 px-4 py-2 bg-[#0a0a0c] border border-white/5 rounded-xl text-zinc-500 hover:text-white transition-all ${showSortMenu ? 'border-blue-500/50 text-white' : ''}`}
+            >
+              <Filter size={18} />
+              <span className="hidden sm:inline">Sort: {sortBy === 'recently_added' ? 'Newest' : sortBy === 'most_raised' ? 'Most Raised' : 'Valuation'}</span>
+              <ChevronDown size={14} />
+            </button>
+
+            {showSortMenu && (
+              <div className="absolute right-0 top-full mt-2 w-48 bg-[#0a0a0c] border border-white/10 rounded-xl shadow-xl z-50 overflow-hidden">
+                <button
+                  onClick={() => { setSortBy('recently_added'); setShowSortMenu(false); }}
+                  className={`w-full text-left px-4 py-3 text-sm hover:bg-white/5 transition-colors ${sortBy === 'recently_added' ? 'text-blue-400 font-medium' : 'text-zinc-400'}`}
+                >
+                  Newest
+                </button>
+                <button
+                  onClick={() => { setSortBy('most_raised'); setShowSortMenu(false); }}
+                  className={`w-full text-left px-4 py-3 text-sm hover:bg-white/5 transition-colors ${sortBy === 'most_raised' ? 'text-blue-400 font-medium' : 'text-zinc-400'}`}
+                >
+                  Most Raised
+                </button>
+                <button
+                  onClick={() => { setSortBy('highest_valuation'); setShowSortMenu(false); }}
+                  className={`w-full text-left px-4 py-3 text-sm hover:bg-white/5 transition-colors ${sortBy === 'highest_valuation' ? 'text-blue-400 font-medium' : 'text-zinc-400'}`}
+                >
+                  Highest Valuation
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -690,6 +883,12 @@ export default function App() {
           </p>
         </div>
       )}
+      <RegisterInterestModal
+        isOpen={registerModalOpen}
+        onClose={() => setRegisterModalOpen(false)}
+        onConfirm={handleRegisterConfirm}
+        startupName={startupToRegister?.name || ''}
+      />
     </>
   );
 
@@ -724,7 +923,7 @@ export default function App() {
           </p>
           <button
             onClick={() => setView("dashboard")}
-            className="mt-6 px-6 py-2 bg-purple-500/10 text-purple-400 rounded-xl hover:bg-purple-500/20 transition-all"
+            className="mt-6 px-6 py-2 bg-blue-500/10 text-blue-400 rounded-xl hover:bg-blue-500/20 transition-all"
           >
             Explore Startups
           </button>
@@ -734,16 +933,18 @@ export default function App() {
   );
 
   return (
-    <div className="min-h-screen bg-[#050507] text-zinc-300 font-sans selection:bg-purple-500/30">
+    <div className="min-h-screen bg-[#050507] text-zinc-300 font-sans selection:bg-blue-500/30">
       <Sidebar
         activeView={view}
         onViewChange={(v) => {
           setView(v);
-          setLoading(true);
         }}
       />
 
-      <main className="pl-64 min-h-screen pb-20">
+      {/* Top Right Blue Gradient Mesh */}
+      <div className="fixed top-0 right-0 w-[500px] h-[500px] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none z-0" />
+
+      <main className="pl-64 min-h-screen pb-20 relative z-10">
         <header className="h-20 border-b border-white/5 px-10 flex items-center justify-between sticky top-0 bg-[#050507]/80 backdrop-blur-md z-30">
           <div className="flex items-center gap-4">
             {view !== "dashboard" && (
@@ -776,6 +977,10 @@ export default function App() {
               startup={selectedStartup}
               onBack={() => setView("dashboard")}
               onToggleBookmark={() => handleToggleBookmark(selectedStartup.id)}
+              onRegisterInterest={() => {
+                setStartupToRegister(selectedStartup);
+                setRegisterModalOpen(true);
+              }}
             />
           )}
         </div>
@@ -784,9 +989,9 @@ export default function App() {
       {/* Toast Notification (Simple Implementation) */}
       <div
         id="toast-notification"
-        className="fixed bottom-10 right-10 flex items-center gap-4 bg-[#0a0a0c] border border-emerald-500/30 text-emerald-400 px-6 py-4 rounded-2xl shadow-2xl transition-all duration-500 translate-y-20 opacity-0 z-50"
+        className="fixed bottom-10 right-10 flex items-center gap-4 bg-[#0a0a0c] border border-blue-500/30 text-blue-400 px-6 py-4 rounded-2xl shadow-2xl transition-all duration-500 translate-y-20 opacity-0 z-50"
       >
-        <div className="p-2 bg-emerald-500/20 rounded-full">
+        <div className="p-2 bg-blue-500/20 rounded-full">
           <CheckCircle2 size={20} />
         </div>
         <div>
@@ -796,6 +1001,13 @@ export default function App() {
           </p>
         </div>
       </div>
+
+      <RegisterInterestModal
+        isOpen={registerModalOpen}
+        onClose={() => setRegisterModalOpen(false)}
+        onConfirm={handleRegisterConfirm}
+        startupName={startupToRegister?.name || ''}
+      />
     </div>
   );
 }
