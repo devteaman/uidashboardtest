@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
     CheckCircle2,
     Edit2,
@@ -93,8 +93,8 @@ const TabsNavigation = ({ activeTab, onTabChange }: { activeTab: Tab; onTabChang
                     key={tab.id}
                     onClick={() => onTabChange(tab.id)}
                     className={`px-6 py-4 text-sm font-medium transition-all relative ${activeTab === tab.id
-                            ? "text-white"
-                            : "text-zinc-500 hover:text-zinc-300"
+                        ? "text-white"
+                        : "text-zinc-500 hover:text-zinc-300"
                         }`}
                 >
                     {tab.label}
@@ -130,8 +130,8 @@ const TagCloud = () => {
                             key={tag}
                             onClick={() => toggleTag(tag)}
                             className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider border transition-all ${isSelected
-                                    ? "bg-blue-500/20 border-blue-500 text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.2)]"
-                                    : "bg-white/5 border-white/10 text-zinc-400 hover:text-zinc-300 hover:border-white/20"
+                                ? "bg-blue-500/20 border-blue-500 text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.2)]"
+                                : "bg-white/5 border-white/10 text-zinc-400 hover:text-zinc-300 hover:border-white/20"
                                 }`}
                         >
                             {tag}
@@ -169,8 +169,8 @@ const KYCStatus = () => {
                     {steps.map((step, idx) => (
                         <div key={idx} className="flex items-center gap-4">
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${step.status === 'complete' ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400' :
-                                    step.status === 'pending' ? 'bg-amber-500/10 border-amber-500 text-amber-400' :
-                                        'bg-zinc-800 border-zinc-700 text-zinc-600'
+                                step.status === 'pending' ? 'bg-amber-500/10 border-amber-500 text-amber-400' :
+                                    'bg-zinc-800 border-zinc-700 text-zinc-600'
                                 }`}>
                                 <step.icon size={18} />
                             </div>
@@ -218,8 +218,8 @@ const HoldingsTable = () => {
                                 <td className="py-4 text-white font-medium">{holding.amount}</td>
                                 <td className="py-4 text-right pr-2">
                                     <span className={`inline-block px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider border ${holding.status === 'Transferred'
-                                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                                            : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                        : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
                                         }`}>
                                         {holding.status}
                                     </span>
