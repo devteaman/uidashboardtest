@@ -21,9 +21,10 @@ import {
 } from "lucide-react";
 import type { Startup } from "./data";
 import { supabase } from "./supabase";
+import InvestorProfile from "./InvestorProfile";
 
 // --- Types ---
-type View = "dashboard" | "calendar" | "watchlist" | "profile";
+type View = "dashboard" | "calendar" | "watchlist" | "profile" | "investor_profile";
 
 // --- Components ---
 
@@ -80,14 +81,20 @@ const Sidebar = ({
       </div>
 
       <div className="p-4 mt-auto">
-        <div className="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-white/5 transition-colors cursor-pointer border border-transparent hover:border-white/5">
+        <div
+          onClick={() => onViewChange("investor_profile")}
+          className={`flex items-center gap-3 px-3 py-3 rounded-lg transition-colors cursor-pointer border ${activeView === 'investor_profile'
+            ? 'bg-blue-500/10 border-blue-500/20'
+            : 'border-transparent hover:bg-white/5 hover:border-white/5'
+            }`}
+        >
           <img
             src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=facearea&facepad=2&w=100&h=100&q=80"
             alt="Profile"
             className="w-8 h-8 rounded-full border border-white/10"
           />
           <div className="flex-1 overflow-hidden">
-            <p className="text-sm font-medium text-white truncate">
+            <p className={`text-sm font-medium truncate ${activeView === 'investor_profile' ? 'text-blue-400' : 'text-white'}`}>
               Alex Thompson
             </p>
             <p className="text-xs text-zinc-500 truncate">Venture Partner</p>
@@ -983,6 +990,8 @@ export default function App() {
               }}
             />
           )}
+
+          {view === "investor_profile" && <InvestorProfile />}
         </div>
       </main>
 
