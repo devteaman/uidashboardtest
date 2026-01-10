@@ -673,9 +673,11 @@ export default function App() {
 
       if (data) {
         /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+        const bookmarkedIds = JSON.parse(localStorage.getItem('angels_den_bookmarks') || '[]');
+
         const mappedData: Startup[] = data.map((item: any) => ({
           ...item,
-          isBookmarked: item.is_bookmarked,
+          isBookmarked: bookmarkedIds.includes(item.id),
           pitchDeckUrl: item.pitch_deck_url
         }));
         setStartups(mappedData);
@@ -746,18 +748,19 @@ export default function App() {
       setSelectedStartup(prev => prev ? ({ ...prev, isBookmarked: newIsBookmarked }) : null);
     }
 
+    // Update LocalStorage (Persist locally instead of global DB)
     try {
-      const { error } = await supabase
-        .from('startups')
-        .update({ is_bookmarked: newIsBookmarked })
-        .eq('id', id);
-
-      if (error) {
-        throw error;
+      const bookmarkedIds = JSON.parse(localStorage.getItem('angels_den_bookmarks') || '[]');
+      let newBookmarks;
+      if (newIsBookmarked) {
+        newBookmarks = [...new Set([...bookmarkedIds, id])];
+      } else {
+        newBookmarks = bookmarkedIds.filter((bid: string) => bid !== id);
       }
+      localStorage.setItem('angels_den_bookmarks', JSON.stringify(newBookmarks));
     } catch (error) {
-      console.error('Error updating bookmark:', error);
-      // Revert optimistic update
+      console.error("Error saving bookmark to local storage", error);
+      // Revert optimistic update if local storage fails (unlikely)
       setStartups((prev) =>
         prev.map((s) =>
           s.id === id ? { ...s, isBookmarked: !newIsBookmarked } : s
